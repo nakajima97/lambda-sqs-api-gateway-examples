@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
+import { Queue } from 'aws-cdk-lib/aws-sqs';
 
 export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -18,5 +19,9 @@ export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
       handler: hello
     });
 
+    // SQSの作成
+    const queue = new Queue(this, 'queue', {
+      queueName: 'queue'
+    });
   }
 }
