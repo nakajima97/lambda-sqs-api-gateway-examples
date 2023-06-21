@@ -1,18 +1,22 @@
 import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import { Function, Runtime, AssetCode, Code } from 'aws-cdk-lib/aws-lambda';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as apigw from 'aws-cdk-lib/aws-apigateway';
 
 export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    new Function(this, 'Gateway', {
-      functionName: 'Gateway',
-      handler: "gateway.handler",
-      runtime: Runtime.NODEJS_14_X,
-      code: Code.fromAsset(`./lambda`),
-      memorySize: 512,
-      timeout: cdk.Duration.seconds(10),
+    // defines an AWS Lambda resource
+    const hello = new lambda.Function(this, 'HelloHandler', {
+      runtime: lambda.Runtime.NODEJS_14_X,    // execution environment
+      code: lambda.Code.fromAsset('lambda'),  // code loaded from "lambda" directory
+      handler: 'hello.handler'                // file is "hello", function is "handler"
     });
+
+    // defines an API Gateway REST API resource backed by our "hello" function.
+    new apigw.LambdaRestApi(this, 'Endpoint', {
+      handler: hello
+    });
+
   }
 }
