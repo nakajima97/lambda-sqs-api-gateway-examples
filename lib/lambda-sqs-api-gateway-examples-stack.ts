@@ -1,27 +1,46 @@
 import * as cdk from 'aws-cdk-lib';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as apigw from 'aws-cdk-lib/aws-apigateway';
+import { Construct } from 'constructs';
+import { Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
-  constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // defines an AWS Lambda resource
-    const hello = new lambda.Function(this, 'HelloHandler', {
-      runtime: lambda.Runtime.NODEJS_14_X,    // execution environment
-      code: lambda.Code.fromAsset('lambda'),  // code loaded from "lambda" directory
-      handler: 'hello.handler'                // file is "hello", function is "handler"
+    // Create the SQS queue
+    const queue = new Queue(this, 'Queue');
+
+    // Create the Lambda function for pushing data to SQS
+    const pushDataToQueueFunction = new Function(this, 'PushDataToQueueFunction', {
+      runtime: Runtime.NODEJS_14_X,
+      handler: 'index.handler',
+      code: Code.fromAsset('lambda/pushDataToQueueFunction'),
+      environment: {
+        QUEUE_URL: queue.queueUrl
+      },
+      timeout: cdk.Duration.seconds(10),
     });
 
-    // defines an API Gateway REST API resource backed by our "hello" function.
-    new apigw.LambdaRestApi(this, 'Endpoint', {
-      handler: hello
+    // Create the Lambda function for processing data from SQS
+    const processDataFromQueueFunction = new Function(this, 'ProcessDataFromQueueFunction', {
+      runtime: Runtime.NODEJS_14_X,
+      handler: 'index.handler',
+      code: Code.fromAsset('lambda/processDataFromQueueFunction'),
+      timeout: cdk.Duration.seconds(10),
+      environment: {
+        QUEUE_URL: queue.queueUrl
+      },
+    });
+    processDataFromQueueFunction.addEventSource(new SqsEventSource(queue));
+
+    // Create the API Gateway
+    new LambdaRestApi(this, 'Endpoint', {
+      handler: pushDataToQueueFunction
     });
 
-    // SQSの作成
-    const queue = new Queue(this, 'queue', {
-      queueName: 'queue'
-    });
+    pushDataToQueueFunction.addToRolePolicy(new PolicyStatement({ actions: ['sqs:SendMessage'], resources: [queue.queueArn] }))
   }
 }
