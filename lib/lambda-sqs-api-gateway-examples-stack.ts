@@ -3,8 +3,8 @@ import { Construct } from 'constructs';
 import { Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
-import { AwsIntegration, LambdaRestApi, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { AwsIntegration, RestApi, MethodResponse, Model } from 'aws-cdk-lib/aws-apigateway';
+import { Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 
 export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -25,10 +25,12 @@ export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
     });
     processDataFromQueueFunction.addEventSource(new SqsEventSource(queue));
 
+    // ロールの作成
     const integrationRole = new Role(this, 'integration-role', {
       assumedBy: new ServicePrincipal('apigateway.amazonaws.com')
     });
 
+    // ロールのアタッチ
     queue.grantSendMessages(integrationRole);
 
     const sendMessageIntegration = new AwsIntegration({
@@ -45,13 +47,22 @@ export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
         },
         integrationResponses: [
           {
-            statusCode: '200'
+            statusCode: '200',
+            responseTemplates: {
+              'application/json': '{ "result": true, "message": "Success!!" }'
+            }
           },
           {
-            statusCode: '400'
+            statusCode: '400',
+            responseTemplates: {
+              'application/json': '{ "result": false, "message": "Bad Request." }'
+            }
           },
           {
-            statusCode: '500'
+            statusCode: '500',
+            responseTemplates: {
+              'application/json': '{ "result": false, "message": "Internal server error." }'
+            }
           }
         ]
       }
@@ -63,13 +74,22 @@ export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
     api.root.addMethod('POST', sendMessageIntegration, {
       methodResponses: [
         {
-          statusCode: '400'
+          statusCode: '200',
+          responseModels: {
+            'application/json': Model.ERROR_MODEL
+          }
         },
         {
-          statusCode: '200'
+          statusCode: '400',
+          responseModels: {
+            'application/json': Model.ERROR_MODEL
+          }
         },
         {
-          statusCode: '500'
+          statusCode: '500',
+          responseModels: {
+            'application/json': Model.ERROR_MODEL
+          }
         }
       ]
     })
