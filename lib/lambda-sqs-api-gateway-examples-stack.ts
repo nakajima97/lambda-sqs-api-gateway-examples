@@ -3,7 +3,7 @@ import { Construct } from 'constructs';
 import { Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
-import { AwsIntegration, RestApi, MethodResponse, Model } from 'aws-cdk-lib/aws-apigateway';
+import { AwsIntegration, RestApi, MethodResponse, Model, JsonSchemaVersion, JsonSchemaType } from 'aws-cdk-lib/aws-apigateway';
 import { Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 
 export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
@@ -71,12 +71,26 @@ export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
     // Rest API
     const api = new RestApi(this, 'api', {});
 
+    const responseModelSuccess = api.addModel('responseModelSuccess', {
+      contentType: 'application/json',
+      modelName: 'Success',
+      schema: {
+        schema: JsonSchemaVersion.DRAFT4,
+        title: 'success',
+        type: JsonSchemaType.OBJECT,
+        properties: {
+          result: { type: JsonSchemaType.BOOLEAN },
+          message: { type: JsonSchemaType.STRING }
+        }
+      }
+    })
+
     api.root.addMethod('POST', sendMessageIntegration, {
       methodResponses: [
         {
           statusCode: '200',
           responseModels: {
-            'application/json': Model.ERROR_MODEL
+            'application/json': responseModelSuccess
           }
         },
         {
