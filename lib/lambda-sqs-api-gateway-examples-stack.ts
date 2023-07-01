@@ -79,8 +79,8 @@ export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
         title: 'success',
         type: JsonSchemaType.OBJECT,
         properties: {
-          state: { type: JsonSchemaType.STRING },
-          greeting: { type: JsonSchemaType.STRING }
+          result: { type: JsonSchemaType.BOOLEAN },
+          message: { type: JsonSchemaType.STRING }
         }
       }
     })
