@@ -3,7 +3,7 @@ import { Construct } from 'constructs';
 import { Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
-import { AwsIntegration, RestApi, MethodResponse, Model, JsonSchemaVersion, JsonSchemaType } from 'aws-cdk-lib/aws-apigateway';
+import { AwsIntegration, RestApi, MethodResponse, Model, JsonSchemaVersion, JsonSchemaType, RequestValidator } from 'aws-cdk-lib/aws-apigateway';
 import { Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 
 export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
@@ -85,7 +85,30 @@ export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
       }
     })
 
+    const requestValidationModel = api.addModel('requestValidationModel', {
+      contentType: 'application/json',
+      modelName: 'requestValidationModel',
+      schema: {
+        schema: JsonSchemaVersion.DRAFT4,
+        title: 'requestValidationModel',
+        type: JsonSchemaType.OBJECT,
+        properties: {
+          text: { type: JsonSchemaType.STRING },
+          date: { type: JsonSchemaType.STRING, format: "date-time" },
+          pet: { type: JsonSchemaType.STRING, enum: ["dog", "cat", "fish", "bird", "gecko"] }
+        },
+        required: ['date', 'text', 'pet']
+      }
+    })
+
     api.root.addMethod('POST', sendMessageIntegration, {
+      requestValidator: new RequestValidator(this, 'body-validator', {
+        restApi: api,
+        validateRequestBody: true
+      }),
+      requestModels: {
+        'application/json': requestValidationModel
+      },
       methodResponses: [
         {
           statusCode: '200',
