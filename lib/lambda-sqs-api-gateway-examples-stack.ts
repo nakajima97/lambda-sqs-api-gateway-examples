@@ -3,7 +3,7 @@ import { Construct } from 'constructs';
 import { Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
-import { AwsIntegration, RestApi, MethodResponse, Model, JsonSchemaVersion, JsonSchemaType, RequestValidator } from 'aws-cdk-lib/aws-apigateway';
+import { AwsIntegration, RestApi, MethodResponse, Model, JsonSchemaVersion, JsonSchemaType, RequestValidator, MethodOptions } from 'aws-cdk-lib/aws-apigateway';
 import { Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 
 export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
@@ -104,10 +104,14 @@ export class LambdaSqsApiGatewayExamplesStack extends cdk.Stack {
     api.root.addMethod('POST', sendMessageIntegration, {
       requestValidator: new RequestValidator(this, 'body-validator', {
         restApi: api,
-        validateRequestBody: true
+        validateRequestBody: true,
+        validateRequestParameters: true
       }),
       requestModels: {
         'application/json': requestValidationModel
+      },
+      requestParameters: {
+        'method.request.header.MyHeader': true,
       },
       methodResponses: [
         {
